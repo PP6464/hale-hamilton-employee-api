@@ -14,6 +14,13 @@ export class DeleteShiftController {
     const employee = await (
       shiftData.data()['employee'] as DocumentReference
     ).get();
+    await cloud_firestore.collection('changes').add({
+      type: 'DELETE',
+      employee: employee.ref,
+      administrator: admins.docs.filter((e) => e.id === admin)[0].ref,
+      date: shiftData.data()['date'],
+      time: shiftData.data()['time'],
+    });
     await shiftData.ref.delete();
     await fcm.sendMulticast({
       tokens: admins.docs.map((e) => e.data()['tokens']).flatMap((e) => e),
