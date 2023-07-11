@@ -36,3 +36,4 @@ lerna-debug.log*
 
 # Confidential
 service-account.json
+*.env
