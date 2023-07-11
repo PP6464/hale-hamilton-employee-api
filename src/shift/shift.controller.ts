@@ -25,6 +25,34 @@ export class ShiftController {
       timeStamp: FieldValue.serverTimestamp(),
     });
     await shiftData.ref.delete();
+    await cloud_firestore.collection('notifications').add({
+      users: admins.docs.map((e) => e.ref),
+      title: 'Shift deletion',
+      body: `Shift of employee ${employee.id} (Name: ${
+        employee.data()['name']
+      }, Email: ${employee.data()['email']}) at ${shiftData
+        .data()
+        ['date'].split('-')
+        .reverse()
+        .join('/')} in the ${
+        shiftData.data()['time']
+      } has been deleted by administrator ${
+        admins.docs.filter((e) => e.id === admin)[0].data()['name']
+      }`,
+      time: FieldValue.serverTimestamp(),
+    });
+    await cloud_firestore.collection('notifications').add({
+      users: [employee.ref],
+      title: 'Shift deletion',
+      body: `Your shift in the ${shiftData.data()['time']} at ${shiftData
+        .data()
+        ['date'].split('-')
+        .reverse()
+        .join(
+          '/',
+        )} has been deleted by an administrator. Enjoy one less shift of work! 👍`,
+      time: FieldValue.serverTimestamp(),
+    });
     await fcm.sendMulticast({
       tokens: admins.docs.map((e) => e.data()['tokens']).flatMap((e) => e),
       notification: {
@@ -83,17 +111,29 @@ export class ShiftController {
       .collection('users')
       .where('isAdmin', '==', true)
       .get();
-    await fcm.sendMulticast({
-      tokens: employee.data()['tokens'],
-      notification: {
-        title: 'Shift addition',
-        body: `You've been added to a ${
-          shiftDetails.time
-        } shift by an administrator on ${shiftDetails.date
-          .split('-')
-          .reverse()
-          .join('/')}.`,
-      },
+    await cloud_firestore.collection('notifications').add({
+      users: admins.docs.map((e) => e.ref),
+      title: 'Shift addition',
+      body: `Employee ${employee.id} (Name: ${
+        employee.data()['name']
+      }, Email: ${employee.data()['email']}) has had a ${
+        shiftDetails.time
+      } shift added at ${shiftDetails.date
+        .split('-')
+        .reverse()
+        .join('/')} by administrator ${
+        admins.docs.filter((e) => e.id === admin)[0].data()['name']
+      }`,
+    });
+    await cloud_firestore.collection('notifications').add({
+      users: [employee.ref],
+      title: 'Shift addition',
+      body: `You've been added to a ${
+        shiftDetails.time
+      } shift by an administrator on ${shiftDetails.date
+        .split('-')
+        .reverse()
+        .join('/')}.`,
     });
     await fcm.sendMulticast({
       tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
@@ -109,6 +149,18 @@ export class ShiftController {
           .join('/')} by administrator ${
           admins.docs.filter((e) => e.id === admin)[0].data()['name']
         }`,
+      },
+    });
+    await fcm.sendMulticast({
+      tokens: employee.data()['tokens'],
+      notification: {
+        title: 'Shift addition',
+        body: `You've been added to a ${
+          shiftDetails.time
+        } shift by an administrator on ${shiftDetails.date
+          .split('-')
+          .reverse()
+          .join('/')}.`,
       },
     });
     return 'Shift added';
