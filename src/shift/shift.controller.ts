@@ -53,7 +53,7 @@ export class ShiftController {
         )} has been deleted by an administrator. Enjoy one less shift of work! 👍`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendMulticast({
+    await fcm.sendEachForMulticast({
       tokens: admins.docs.map((e) => e.data()['tokens']).flatMap((e) => e),
       notification: {
         title: 'Shift deletion',
@@ -70,7 +70,7 @@ export class ShiftController {
         }`,
       },
     });
-    await fcm.sendMulticast({
+    await fcm.sendEachForMulticast({
       tokens: employee.data()['tokens'],
       notification: {
         title: 'Shift deletion',
@@ -135,7 +135,7 @@ export class ShiftController {
         .reverse()
         .join('/')}.`,
     });
-    await fcm.sendMulticast({
+    await fcm.sendEachForMulticast({
       tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
       notification: {
         title: 'Shift addition',
@@ -151,7 +151,7 @@ export class ShiftController {
         }`,
       },
     });
-    await fcm.sendMulticast({
+    await fcm.sendEachForMulticast({
       tokens: employee.data()['tokens'],
       notification: {
         title: 'Shift addition',
