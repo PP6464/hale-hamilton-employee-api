@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Put,
+  Post
   Query,
 } from '@nestjs/common';
 import { cloud_firestore, fcm } from '../firebase/firebase';
