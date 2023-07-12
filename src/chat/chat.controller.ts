@@ -57,13 +57,13 @@ export class ChatController {
     const userChanged = await cloud_firestore.doc(`users/${user}`).get();
     if (
       !userChanged.exists ||
-      ((group.data()['users'] as DocumentReference[]).includes(
-        userChanged.ref,
-      ) &&
+      ((group.data()['users'] as DocumentReference[])
+        .map((e) => e.path)
+        .includes(userChanged.ref.path) &&
         type === 'add') ||
-      (!(group.data()['users'] as DocumentReference[]).includes(
-        userChanged.ref,
-      ) &&
+      (!(group.data()['users'] as DocumentReference[])
+        .map((e) => e.path)
+        .includes(userChanged.ref.path) &&
         type === 'remove')
     )
       return 'User is invalid';
@@ -122,7 +122,13 @@ export class ChatController {
     const group = await cloud_firestore.doc(`groups/${id}`).get();
     if (!group.exists) return 'Group does not exist';
     const userBy = await cloud_firestore.doc(`users/${by}`).get();
-    if (!userBy.exists || !group.data()['users'].includes(userBy.ref))
+    if (
+      !userBy.exists ||
+      !group
+        .data()
+        ['users'].map((e) => e.path)
+        .includes(userBy.ref.path)
+    )
       return 'User by is invalid';
     await group.ref.delete();
     await cloud_firestore.collection('notifications').add({
@@ -144,7 +150,13 @@ export class ChatController {
     const group = await cloud_firestore.doc(`groups/${id}`).get();
     if (!group.exists) return 'Group does not exist';
     const user = await cloud_firestore.doc(`users/${uid}`).get();
-    if (!user.exists || !group.data()['users'].includes(user.ref))
+    if (
+      !user.exists ||
+      !group
+        .data()
+        ['users'].map((e) => e.path)
+        .includes(user.ref.path)
+    )
       return 'User is invalid';
     await group.ref.collection('messages').add({
       text: text,

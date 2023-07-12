@@ -58,9 +58,7 @@ export class ShiftController {
         .reverse()
         .join('/')} in the ${
         shiftData.data()['time']
-      } has been deleted by administrator ${
-        admins.docs.filter((e) => e.id === admin)[0].data()['name']
-      }`,
+      } has been deleted by administrator ${adminData.data()['name']}`,
       time: FieldValue.serverTimestamp(),
     });
     await cloud_firestore.collection('notifications').add({
@@ -205,7 +203,10 @@ export class ShiftController {
     const employee = await cloud_firestore
       .doc(`users/${shiftDetails.employee}`)
       .get();
-    if (!employee.exists || employee.ref !== oldShift.data()['employee'])
+    if (
+      !employee.exists ||
+      employee.ref.path !== oldShift.data()['employee'].path
+    )
       return 'Employee is invalid';
     const adminData = await cloud_firestore.doc(`users/${admin}`).get();
     if (!adminData.exists) return 'Admin does not exist';
@@ -312,7 +313,7 @@ export class ShiftController {
     const employee = await cloud_firestore
       .doc(`users/${shiftDetails.employee}`)
       .get();
-    if (!employee.exists || employee.ref !== shift.data()['employee'])
+    if (!employee.exists || employee.ref.path !== shift.data()['employee'].path)
       return 'Employee is invalid';
     const admins = await cloud_firestore
       .collection('users')
@@ -393,7 +394,10 @@ export class ShiftController {
     const shift = await cloud_firestore.doc(`shifts/${id}`).get();
     if (!shift.exists) return 'Shift does not exist';
     const employeeBy = await cloud_firestore.doc(`users/${by}`).get();
-    if (!employeeBy.exists || employeeBy.ref !== shift.data()['employee'])
+    if (
+      !employeeBy.exists ||
+      employeeBy.ref.path !== shift.data()['employee'].path
+    )
       return 'Employee is invalid';
     const admins = await cloud_firestore
       .collection('users')
