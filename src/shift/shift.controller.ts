@@ -12,7 +12,7 @@ import { DocumentReference } from 'firebase-admin/lib/firestore';
 import { firestore } from 'firebase-admin';
 import FieldValue = firestore.FieldValue;
 
-function customIsValidDate(date: string) {
+function isValidDateYYYYMMDD(date: string) {
   const regex = '^\\d{4}-\\d{2}-\\d{2}$';
   if (!date.match(regex)) return false;
   const d = new Date(date);
@@ -116,7 +116,7 @@ export class ShiftController {
     if (!employee.exists) return 'Employee does not exist';
     const adminData = await cloud_firestore.doc(`users/${admin}`).get();
     if (!adminData.exists) return 'Admin does not exist';
-    if (!customIsValidDate(shiftDetails.date)) return 'Invalid date format';
+    if (!isValidDateYYYYMMDD(shiftDetails.date)) return 'Invalid date format';
     await cloud_firestore.collection('shifts').add({
       employee: cloud_firestore.doc(`users/${shiftDetails.employee}`),
       time: shiftDetails.time,
@@ -209,7 +209,7 @@ export class ShiftController {
       return 'Employee is invalid';
     const adminData = await cloud_firestore.doc(`users/${admin}`).get();
     if (!adminData.exists) return 'Admin does not exist';
-    if (!customIsValidDate(shiftDetails.date)) return 'Invalid date format';
+    if (!isValidDateYYYYMMDD(shiftDetails.date)) return 'Invalid date format';
     await cloud_firestore.doc(`shifts/${id}`).set({
       employee: cloud_firestore.doc(`users/${shiftDetails.employee}`),
       time: shiftDetails.time,
@@ -307,7 +307,7 @@ export class ShiftController {
   ) {
     const shift = await cloud_firestore.doc(`shifts/${id}`).get();
     if (!shift.exists) return 'Shift does not exist';
-    if (!customIsValidDate(shiftDetails.date))
+    if (!isValidDateYYYYMMDD(shiftDetails.date))
       return 'Shift date format is not valid';
     const employee = await cloud_firestore
       .doc(`users/${shiftDetails.employee}`)
@@ -360,7 +360,7 @@ export class ShiftController {
       .doc(`users/${shiftDetails.employee}`)
       .get();
     if (!employee.exists) return 'Employee is invalid';
-    if (!customIsValidDate(shiftDetails.date)) return 'Date format is invalid';
+    if (!isValidDateYYYYMMDD(shiftDetails.date)) return 'Date format is invalid';
     const admins = await cloud_firestore
       .collection('users')
       .where('isAdmin', '==', true)
