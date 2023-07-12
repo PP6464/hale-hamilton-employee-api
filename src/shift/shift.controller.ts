@@ -5,7 +5,7 @@ import {
   Param,
   Patch,
   Put,
-  Post
+  Post,
   Query,
 } from '@nestjs/common';
 import { cloud_firestore, fcm } from '../firebase/firebase';
@@ -361,7 +361,8 @@ export class ShiftController {
       .doc(`users/${shiftDetails.employee}`)
       .get();
     if (!employee.exists) return 'Employee is invalid';
-    if (!isValidDateYYYYMMDD(shiftDetails.date)) return 'Date format is invalid';
+    if (!isValidDateYYYYMMDD(shiftDetails.date))
+      return 'Date format is invalid';
     const admins = await cloud_firestore
       .collection('users')
       .where('isAdmin', '==', true)
