@@ -134,6 +134,37 @@ export class ChatController {
     });
   }
 
+  @Put('group/:id/message')
+  async newGroupMessage(
+    @Param('id') id: string,
+    @Query('text') text: string,
+    @Query('uid') uid: string,
+  ) {
+    const group = await cloud_firestore.doc(`groups/${id}`).get();
+    if (!group.exists) return 'Group does not exist';
+    const user = await cloud_firestore.doc(`users/${uid}`).get();
+    if (!user.exists || !group.data()['users'].includes(user.ref))
+      return 'User is invalid';
+    await group.ref.collection('messages').add({
+      text: text,
+      user: user.ref,
+      time: FieldValue.serverTimestamp(),
+    });
+    await cloud_firestore.collection('notifications').add({
+      users: group.data()['users'],
+      title: `${user.data()['name']}@${group.data()['name']}`,
+      body: text,
+      time: FieldValue.serverTimestamp(),
+    });
+    await fcm.sendEachForMulticast({
+      tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
+      notification: {
+        title: `${user.data()['name']}@${group.data()['name']}`,
+        body: text,
+      },
+    });
+  }
+
   @Put('message')
   async newMessage(
     @Query('text') text: string,
