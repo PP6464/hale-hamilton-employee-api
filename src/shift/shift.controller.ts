@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Delete,
-  Get,
   Param,
   Patch,
   Put,
@@ -301,7 +300,7 @@ export class ShiftController {
     return 'Shift rescheduled';
   }
 
-  @Get('request/update/:id')
+  @Post('request/update/:id')
   async requestShiftUpdate(
     @Param('id') id: string,
     @Body() shiftDetails: ShiftDetails,
@@ -355,7 +354,7 @@ export class ShiftController {
     return 'Shift request sent';
   }
 
-  @Get('request/add')
+  @Post('request/add')
   async requestNewShift(@Body() shiftDetails: ShiftDetails) {
     const employee = await cloud_firestore
       .doc(`users/${shiftDetails.employee}`)
@@ -389,7 +388,7 @@ export class ShiftController {
     });
   }
 
-  @Get('request/delete/:id')
+  @Post('request/delete/:id')
   async requestDeleteShift(@Param('id') id: string, @Query('by') by: string) {
     const shift = await cloud_firestore.doc(`shifts/${id}`).get();
     if (!shift.exists) return 'Shift does not exist';
