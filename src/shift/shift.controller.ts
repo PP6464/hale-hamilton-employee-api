@@ -245,9 +245,7 @@ export class ShiftController {
     await cloud_firestore.collection('notifications').add({
       users: [employee.ref],
       title: 'Shift rescheduling',
-      body: `Your ${
-        oldShift.data()['time'] === 'morning' ? 'a morning' : 'an evening'
-      } shift on ${oldShift
+      body: `Your ${oldShift.data()['time']} shift on ${oldShift
         .data()
         ['date'].split('-')
         .reverse()
@@ -281,9 +279,7 @@ export class ShiftController {
       tokens: employee.data()['tokens'],
       notification: {
         title: 'Shift rescheduling',
-        body: `Your ${
-          oldShift.data()['time'] === 'morning' ? 'a morning' : 'an evening'
-        } shift on ${oldShift
+        body: `Your ${oldShift.data()['time']} shift on ${oldShift
           .data()
           ['date'].split('-')
           .reverse()
