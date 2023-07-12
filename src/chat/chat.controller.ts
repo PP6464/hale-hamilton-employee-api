@@ -95,7 +95,9 @@ export class ChatController {
     await cloud_firestore.collection('notifications').add({
       users: [userChanged.ref],
       title: `${type === 'add' ? 'Addition to' : 'Removal from'} group`,
-      body: `You have been ${type === 'add' ? 'added to' : 'removed from'} group ${group.data()['name']}`,
+      body: `You have been ${
+        type === 'add' ? 'added to' : 'removed from'
+      } group ${group.data()['name']}`,
       time: FieldValue.serverTimestamp(),
     });
     await fcm.sendEachForMulticast({
@@ -115,7 +117,22 @@ export class ChatController {
   }
 
   @Delete('group/:id')
-  async deleteGroup(@Param('id') id: string, @Query('by') by: string) {}
+  async deleteGroup(@Param('id') id: string, @Query('by') by: string) {
+    const group = await cloud_firestore.doc(`groups/${id}`).get();
+    if (!group.exists) return 'Group does not exist';
+    const userBy = await cloud_firestore.doc(`users/${by}`).get();
+    if (!userBy.exists || !group.data()['users'].includes(userBy.ref))
+      return 'User by is invalid';
+    await group.ref.delete();
+    await cloud_firestore.collection('notifications').add({
+      users: group.data()['users'],
+      title: 'Deletion of group',
+      body: `The group ${group.data()['name']} has been deleted by ${
+        userBy.data()['name']
+      }`,
+      time: FieldValue.serverTimestamp(),
+    });
+  }
 
   @Put('message')
   async newMessage(
