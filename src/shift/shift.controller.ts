@@ -211,7 +211,7 @@ export class ShiftController {
       time: shiftDetails.time,
       date: shiftDetails.date,
     });
-    await cloud_firestore.doc(`shifts/${id}`).set({
+    await cloud_firestore.collection(`changes`).add({
       type: 'PATCH',
       shiftTime: shiftDetails.time,
       shiftDate: shiftDetails.date,
