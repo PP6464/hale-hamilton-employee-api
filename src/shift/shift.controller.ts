@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   Patch,
   Put,
@@ -75,7 +76,7 @@ export class ShiftController {
       time: FieldValue.serverTimestamp(),
     });
     await fcm.sendEachForMulticast({
-      tokens: admins.docs.map((e) => e.data()['tokens']).flatMap((e) => e),
+      tokens: admins.docs.flatMap((e) => e.data()['tokens']),
       notification: {
         title: 'Shift deletion',
         body: `Shift of employee ${employee.id} (Name: ${
@@ -149,6 +150,7 @@ export class ShiftController {
         .join('/')} by administrator ${
         admins.docs.filter((e) => e.id === admin)[0].data()['name']
       }`,
+      time: FieldValue.serverTimestamp(),
     });
     await cloud_firestore.collection('notifications').add({
       users: [employee.ref],
@@ -159,6 +161,7 @@ export class ShiftController {
         .split('-')
         .reverse()
         .join('/')}.`,
+      time: FieldValue.serverTimestamp(),
     });
     await fcm.sendEachForMulticast({
       tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
@@ -197,15 +200,16 @@ export class ShiftController {
     @Query('admin') admin: string,
     @Body() shiftDetails: ShiftDetails,
   ) {
+    const oldShift = await cloud_firestore.doc(`shifts/${id}`).get();
+    if (!oldShift.exists) return 'Shift does not exist';
     const employee = await cloud_firestore
       .doc(`users/${shiftDetails.employee}`)
       .get();
-    if (!employee.exists) return 'Employee does not exist';
+    if (!employee.exists || employee.ref !== oldShift.data()['employee'])
+      return 'Employee is invalid';
     const adminData = await cloud_firestore.doc(`users/${admin}`).get();
     if (!adminData.exists) return 'Admin does not exist';
     if (!customIsValidDate(shiftDetails.date)) return 'Invalid date format';
-    const oldShift = await cloud_firestore.doc(`shifts/${id}`).get();
-    if (!oldShift.exists) return 'Shift does not exist';
     await cloud_firestore.doc(`shifts/${id}`).set({
       employee: cloud_firestore.doc(`users/${shiftDetails.employee}`),
       time: shiftDetails.time,
@@ -241,6 +245,7 @@ export class ShiftController {
       } shift by administrator ${
         admins.docs.filter((e) => e.id === admin)[0].data()['name']
       }`,
+      time: FieldValue.serverTimestamp(),
     });
     await cloud_firestore.collection('notifications').add({
       users: [employee.ref],
@@ -255,6 +260,7 @@ export class ShiftController {
         .split('-')
         .reverse()
         .join('/')} by an administrator.`,
+      time: FieldValue.serverTimestamp(),
     });
     await fcm.sendEachForMulticast({
       tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
@@ -292,6 +298,130 @@ export class ShiftController {
       },
     });
     return 'Shift rescheduled';
+  }
+
+  @Get('request/update/:id')
+  async requestShiftUpdate(
+    @Param('id') id: string,
+    @Body() shiftDetails: ShiftDetails,
+  ) {
+    const shift = await cloud_firestore.doc(`shifts/${id}`).get();
+    if (!shift.exists) return 'Shift does not exist';
+    if (!customIsValidDate(shiftDetails.date))
+      return 'Shift date format is not valid';
+    const employee = await cloud_firestore
+      .doc(`users/${shiftDetails.employee}`)
+      .get();
+    if (!employee.exists || employee.ref !== shift.data()['employee'])
+      return 'Employee is invalid';
+    const admins = await cloud_firestore
+      .collection('users')
+      .where('isAdmin', '==', true)
+      .get();
+    await cloud_firestore.collection('notifications').add({
+      users: admins.docs.map((e) => e.ref),
+      title: 'Shift reschedule request',
+      body: `Employee ${employee.id} (Name: ${
+        employee.data()['name']
+      }, Email: ${employee.data()['email']}) has requested to have their ${
+        shift.data()['time']
+      } shift on ${shift
+        .data()
+        ['date'].split('-')
+        .reverse()
+        .join('/')} rescheduled to be in the ${
+        shiftDetails.time
+      } on ${shiftDetails.date.split('-').reverse().join('/')}`,
+      time: FieldValue.serverTimestamp(),
+    });
+    await fcm.sendEachForMulticast({
+      tokens: admins.docs.flatMap((e) => e.data()['tokens']),
+      notification: {
+        title: 'Shift reschedule request',
+        body: `Employee ${employee.id} (Name: ${
+          employee.data()['name']
+        }, Email: ${employee.data()['email']}) has requested to have their ${
+          shift.data()['time']
+        } shift on ${shift
+          .data()
+          ['date'].split('-')
+          .reverse()
+          .join('/')} rescheduled to be in the ${
+          shiftDetails.time
+        } on ${shiftDetails.date.split('-').reverse().join('/')}`,
+      },
+    });
+    return 'Shift request sent';
+  }
+
+  @Get('request/add')
+  async requestNewShift(@Body() shiftDetails: ShiftDetails) {
+    const employee = await cloud_firestore
+      .doc(`users/${shiftDetails.employee}`)
+      .get();
+    if (!employee.exists) return 'Employee is invalid';
+    if (!customIsValidDate(shiftDetails.date)) return 'Date format is invalid';
+    const admins = await cloud_firestore
+      .collection('users')
+      .where('isAdmin', '==', true)
+      .get();
+    await cloud_firestore.collection('notifications').add({
+      users: admins.docs.map((e) => e.ref),
+      title: 'Shift addition request',
+      body: `Employee ${employee.id} (Name: ${
+        employee.data()['name']
+      }, Email: ${employee.data()['email']}) has requested a new ${
+        shiftDetails.time
+      } shift on ${shiftDetails.date.split('-').reverse().join('/')}`,
+      time: FieldValue.serverTimestamp(),
+    });
+    await fcm.sendEachForMulticast({
+      tokens: admins.docs.flatMap((e) => e.data()['tokens']),
+      notification: {
+        title: 'Shift addition request',
+        body: `Employee ${employee.id} (Name: ${
+          employee.data()['name']
+        }, Email: ${employee.data()['email']}) has requested a new ${
+          shiftDetails.time
+        } shift on ${shiftDetails.date.split('-').reverse().join('/')}`,
+      },
+    });
+  }
+
+  @Get('request/delete/:id')
+  async requestDeleteShift(@Param('id') id: string, @Query('by') by: string) {
+    const shift = await cloud_firestore.doc(`shifts/${id}`).get();
+    if (!shift.exists) return 'Shift does not exist';
+    const employeeBy = await cloud_firestore.doc(`users/${by}`).get();
+    if (!employeeBy.exists || employeeBy.ref !== shift.data()['employee'])
+      return 'Employee is invalid';
+    const admins = await cloud_firestore
+      .collection('users')
+      .where('isAdmin', '==', true)
+      .get();
+    await cloud_firestore.collection('notifications').add({
+      users: admins.docs.map((e) => e.ref),
+      title: 'Shift deletion request',
+      body: `Employee ${employeeBy.id} (Name: ${
+        employeeBy.data()['name']
+      }, Email: ${employeeBy.data()['email']}) has requested to delete their ${
+        shift.data()['time']
+      } shift on ${shift.data()['date'].split('-').reverse().join('/')}`,
+      time: FieldValue.serverTimestamp(),
+    });
+    await fcm.sendEachForMulticast({
+      tokens: admins.docs.flatMap((e) => e.data()['tokens']),
+      notification: {
+        title: 'Shift deletion request',
+        body: `Employee ${employeeBy.id} (Name: ${
+          employeeBy.data()['name']
+        }, Email: ${
+          employeeBy.data()['email']
+        }) has requested to delete their ${
+          shift.data()['time']
+        } shift on ${shift.data()['date'].split('-').reverse().join('/')}`,
+      },
+    });
   }
 }
 
