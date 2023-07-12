@@ -8,13 +8,16 @@ import {
   Param,
 } from '@nestjs/common';
 import { cloud_firestore, fcm } from '../firebase/firebase';
-import { DocumentReference, FieldValue } from 'firebase-admin/lib/firestore';
+import firebase from 'firebase-admin';
+import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
+import DocumentReference = firebase.firestore.DocumentReference;
+import FieldValue = firebase.firestore.FieldValue;
 
 @Controller('chat')
 export class ChatController {
   @Put('group/new')
   async newGroup(@Query('name') name: string, @Body() members: string[]) {
-    const membersData: any[] = [];
+    const membersData: DocumentSnapshot[] = [];
     for (let i = 0; i < members.length; i++) {
       const member = await cloud_firestore.doc(`users/${members[i]}`).get();
       if (!member.exists) {
