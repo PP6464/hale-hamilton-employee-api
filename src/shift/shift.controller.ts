@@ -253,10 +253,10 @@ export class ShiftController {
         .reverse()
         .join('/')} has been rescheduled to ${
         shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
-      } shift by an administrator on ${shiftDetails.date
+      } shift on ${shiftDetails.date
         .split('-')
         .reverse()
-        .join('/')}.`,
+        .join('/')} by an administrator.`,
     });
     await fcm.sendEachForMulticast({
       tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
@@ -289,10 +289,10 @@ export class ShiftController {
           .reverse()
           .join('/')} has been rescheduled to ${
           shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
-        } shift by an administrator on ${shiftDetails.date
+        } shift on ${shiftDetails.date
           .split('-')
           .reverse()
-          .join('/')}.`,
+          .join('/')} by an administrator.`,
       },
     });
     return 'Shift rescheduled';
