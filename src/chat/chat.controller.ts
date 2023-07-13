@@ -16,7 +16,11 @@ import FieldValue = firebase.firestore.FieldValue;
 @Controller('chat')
 export class ChatController {
   @Put('group/new')
-  async newGroup(@Query('name') name: string, @Query('desc') desc: string, @Body() members: string[]) {
+  async newGroup(
+    @Query('name') name: string,
+    @Query('desc') desc: string,
+    @Body() members: string[],
+  ) {
     const membersData: DocumentSnapshot[] = [];
     for (let i = 0; i < members.length; i++) {
       const member = await cloud_firestore.doc(`users/${members[i]}`).get();
