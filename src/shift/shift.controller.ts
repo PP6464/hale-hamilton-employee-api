@@ -44,7 +44,7 @@ export class ShiftController {
       administrator: admins.docs.filter((e) => e.id === admin)[0].ref,
       shiftDate: shiftData.data()['date'],
       shiftTime: shiftData.data()['time'],
-      timeStamp: FieldValue.serverTimestamp(),
+      timestamp: FieldValue.serverTimestamp(),
     });
     await shiftData.ref.delete();
     await cloud_firestore.collection('notifications').add({
