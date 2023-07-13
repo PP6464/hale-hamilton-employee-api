@@ -22,8 +22,8 @@ export class ChatController {
     @Body() members: string[],
   ) {
     const membersData: DocumentSnapshot[] = [];
-    for (let i = 0; i < members.length; i++) {
-      const member = await cloud_firestore.doc(`users/${members[i]}`).get();
+    for (let i = 0; i < members['members'].length; i++) {
+      const member = await cloud_firestore.doc(`users/${members['members'][i]}`).get();
       if (!member.exists) {
         return 'One of the members does not exist';
       } else {
@@ -36,7 +36,7 @@ export class ChatController {
       users: membersData.map((e) => e.ref),
     });
     await cloud_firestore.collection('notifications').add({
-      users: members.map((e) => cloud_firestore.doc(`users/${e}`)),
+      users: membersData.map((e) => e.ref),
       title: 'Addition into new group',
       body: `You have been added to a new group called ${name} (Description: ${desc})`,
       time: FieldValue.serverTimestamp(),
