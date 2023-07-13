@@ -23,7 +23,9 @@ export class ChatController {
   ) {
     const membersData: DocumentSnapshot[] = [];
     for (let i = 0; i < members['members'].length; i++) {
-      const member = await cloud_firestore.doc(`users/${members['members'][i]}`).get();
+      const member = await cloud_firestore
+        .doc(`users/${members['members'][i]}`)
+        .get();
       if (!member.exists) {
         return 'One of the members does not exist';
       } else {
