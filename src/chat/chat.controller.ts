@@ -202,16 +202,7 @@ export class ChatController {
         ['users'].map((e) => e.id)
         .includes(userTo.id),
     );
-    let chatDocID: string;
-    if (chatDocCheck.length === 0) {
-      chatDocID = (
-        await cloud_firestore.collection('121').add({
-          users: [userFrom.ref, userTo.ref],
-        })
-      ).id;
-    } else {
-      chatDocID = chatDocCheck[0].id;
-    }
+    const chatDocID = [msg.from, msg.to].sort().join();
     await cloud_firestore.collection(`121/${chatDocID}/messages`).add({
       from: userFrom.ref,
       to: userTo.ref,
