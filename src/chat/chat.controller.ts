@@ -186,27 +186,50 @@ export class ChatController {
   }
 
   @Put('message')
-  async newMessage(
-    @Query('text') text: string,
-    @Query('from') _userFrom: string,
-    @Query('to') _userTo: string,
-  ) {
-    const userFrom = await cloud_firestore.doc(`users/${_userFrom}`).get();
+  async newMessage(@Body() msg: Message) {
+    const userFrom = await cloud_firestore.doc(`users/${msg.from}`).get();
     if (!userFrom.exists) return 'User from does not exist';
-    const userTo = await cloud_firestore.doc(`users/${_userTo}`).get();
+    const userTo = await cloud_firestore.doc(`users/${msg.to}`).get();
     if (!userTo.exists) return 'User to does not exist';
-    await cloud_firestore.collection('messages').add({
+    const chatDocCheck = (
+      await cloud_firestore
+        .collection('121')
+        .where('users', 'array-contains', userFrom.ref)
+        .get()
+    ).docs.filter((e) =>
+      e
+        .data()
+        ['users'].map((e) => e.id)
+        .includes(userTo.id),
+    );
+    let chatDocID: string;
+    if (chatDocCheck.length === 0) {
+      chatDocID = (
+        await cloud_firestore.collection('121').add({
+          users: [userFrom.ref, userTo.ref],
+        })
+      ).id;
+    } else {
+      chatDocID = chatDocCheck[0].id;
+    }
+    await cloud_firestore.collection(`121/${chatDocID}/messages`).add({
       from: userFrom.ref,
       to: userTo.ref,
       time: FieldValue.serverTimestamp(),
-      text: text,
+      text: msg.text,
     });
     await fcm.sendEachForMulticast({
       tokens: userTo.data()['tokens'],
       notification: {
         title: `New message from ${userFrom.data()['name']}`,
-        body: text,
+        body: msg.text,
       },
     });
   }
+}
+
+interface Message {
+  from: string;
+  to: string;
+  text: string;
 }
