@@ -191,17 +191,6 @@ export class ChatController {
     if (!userFrom.exists) return 'User from does not exist';
     const userTo = await cloud_firestore.doc(`users/${msg.to}`).get();
     if (!userTo.exists) return 'User to does not exist';
-    const chatDocCheck = (
-      await cloud_firestore
-        .collection('121')
-        .where('users', 'array-contains', userFrom.ref)
-        .get()
-    ).docs.filter((e) =>
-      e
-        .data()
-        ['users'].map((e) => e.id)
-        .includes(userTo.id),
-    );
     const chatDocID = [msg.from, msg.to].sort().join();
     await cloud_firestore.collection(`121/${chatDocID}/messages`).add({
       from: userFrom.ref,
