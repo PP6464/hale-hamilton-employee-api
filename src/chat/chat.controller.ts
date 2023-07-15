@@ -198,6 +198,11 @@ export class ChatController {
       time: FieldValue.serverTimestamp(),
       text: msg.text,
     });
+    await cloud_firestore.collection('notifications').add({
+      users: [userTo.ref],
+      title: `New message from ${userFrom.data()['name']}`,
+      message: msg.text,
+    });
     await fcm.sendEachForMulticast({
       tokens: userTo.data()['tokens'],
       notification: {
