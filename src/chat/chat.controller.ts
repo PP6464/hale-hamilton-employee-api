@@ -52,6 +52,64 @@ export class ChatController {
     });
   }
 
+  @Patch('group/:id/edit')
+  async editGroup(
+    @Param('id') id: string,
+    @Query('by') by: string,
+    @Body() changes: GroupChanges,
+  ) {
+    const group = await cloud_firestore.doc(`groups/${id}`).get();
+    if (!group.exists) return 'Group does not exist';
+    const userBy = await cloud_firestore.doc(`users/${by}`).get();
+    if (
+      !userBy.exists ||
+      !group
+        .data()
+        ['users'].map((e) => e.id)
+        .includes(by)
+    )
+      return 'User is invalid';
+    await group.ref.update({ ...changes });
+    if (changes.name !== group.data()['name']) {
+      await cloud_firestore.collection('notifications').add({
+        users: group.data()['users'],
+        title: 'Group modification',
+        body: `Group ${group.data()['name']} has been renamed to ${
+          changes.name
+        }`,
+        time: FieldValue.serverTimestamp(),
+      });
+      await fcm.sendEachForMulticast({
+        tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
+        notification: {
+          title: 'Group modification',
+          body: `Group ${group.data()['name']} has been renamed to ${
+            changes.name
+          }`,
+        },
+      });
+    }
+    if (changes.desc !== group.data()['desc']) {
+      await cloud_firestore.collection('notifications').add({
+        users: group.data()['users'],
+        title: 'Group modification',
+        body: `Group ${
+          group.data()['name']
+        } has had its description changed to ${changes.desc}`,
+        time: FieldValue.serverTimestamp(),
+      });
+      await fcm.sendEachForMulticast({
+        tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
+        notification: {
+          title: 'Group modification',
+          body: `Group ${
+            group.data()['name']
+          } has had its description changed to ${changes.desc}`,
+        },
+      });
+    }
+  }
+
   @Patch('group/:id/change')
   async changeGroupUsers(
     @Param('id') id: string,
@@ -217,4 +275,9 @@ interface Message {
   from: string;
   to: string;
   text: string;
+}
+
+interface GroupChanges {
+  name: string;
+  desc: string;
 }
