@@ -167,7 +167,7 @@ export class ChatController {
       time: FieldValue.serverTimestamp(),
     });
     await fcm.sendEachForMulticast({
-      tokens: [],
+      tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
       notification: {
         title: `${type === 'add' ? 'Addition' : 'Removal'} of user from group`,
         body:
