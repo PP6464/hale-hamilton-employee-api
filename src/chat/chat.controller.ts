@@ -7,7 +7,7 @@ import {
   Body,
   Param,
 } from '@nestjs/common';
-import { cloud_firestore, fcm } from '../firebase/firebase';
+import { firestore, fcm } from '../firebase/firebase';
 import firebase from 'firebase-admin';
 import DocumentSnapshot = firebase.firestore.DocumentSnapshot;
 import DocumentReference = firebase.firestore.DocumentReference;
@@ -23,7 +23,7 @@ export class ChatController {
   ) {
     const membersData: DocumentSnapshot[] = [];
     for (let i = 0; i < members['members'].length; i++) {
-      const member = await cloud_firestore
+      const member = await firestore
         .doc(`users/${members['members'][i]}`)
         .get();
       if (!member.exists) {
@@ -32,12 +32,12 @@ export class ChatController {
         membersData.push(member);
       }
     }
-    await cloud_firestore.collection('groups').add({
+    await firestore.collection('groups').add({
       name: name,
       desc: desc,
       users: membersData.map((e) => e.ref),
     });
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: membersData.map((e) => e.ref),
       title: 'Addition into new group',
       body: `You have been added to a new group called ${name} (Description: ${desc})`,
@@ -58,9 +58,9 @@ export class ChatController {
     @Query('by') by: string,
     @Body() changes: GroupChanges,
   ) {
-    const group = await cloud_firestore.doc(`groups/${id}`).get();
+    const group = await firestore.doc(`groups/${id}`).get();
     if (!group.exists) return 'Group does not exist';
-    const userBy = await cloud_firestore.doc(`users/${by}`).get();
+    const userBy = await firestore.doc(`users/${by}`).get();
     if (
       !userBy.exists ||
       !group
@@ -71,7 +71,7 @@ export class ChatController {
       return 'User is invalid';
     await group.ref.update({ ...changes });
     if (changes.name !== group.data()['name']) {
-      await cloud_firestore.collection('notifications').add({
+      await firestore.collection('notifications').add({
         users: group.data()['users'],
         title: 'Group modification',
         body: `Group ${group.data()['name']} has been renamed to ${
@@ -90,7 +90,7 @@ export class ChatController {
       });
     }
     if (changes.desc !== group.data()['desc']) {
-      await cloud_firestore.collection('notifications').add({
+      await firestore.collection('notifications').add({
         users: group.data()['users'],
         title: 'Group modification',
         body: `Group ${
@@ -117,9 +117,9 @@ export class ChatController {
     @Query('user') user: string,
     @Query('by') by: string,
   ) {
-    const group = await cloud_firestore.doc(`groups/${id}`).get();
+    const group = await firestore.doc(`groups/${id}`).get();
     if (!group.exists) return 'Group does not exist';
-    const userChanged = await cloud_firestore.doc(`users/${user}`).get();
+    const userChanged = await firestore.doc(`users/${user}`).get();
     if (
       !userChanged.exists ||
       ((group.data()['users'] as DocumentReference[])
@@ -132,7 +132,7 @@ export class ChatController {
         type === 'remove')
     )
       return 'User is invalid';
-    const userBy = await cloud_firestore.doc(`users/${by}`).get();
+    const userBy = await firestore.doc(`users/${by}`).get();
     if (!userBy.exists || group.data()['users'].includes(userBy.ref))
       return 'User by is invalid';
     await group.ref.update({
@@ -141,7 +141,7 @@ export class ChatController {
           ? FieldValue.arrayUnion(userChanged.ref)
           : FieldValue.arrayRemove(userChanged.ref),
     });
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: (group.data()['users'] as DocumentReference[]).filter(
         (e) => e.id !== userChanged.id,
       ),
@@ -158,7 +158,7 @@ export class ChatController {
             }`,
       time: FieldValue.serverTimestamp(),
     });
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: [userChanged.ref],
       title: `${type === 'add' ? 'Addition to' : 'Removal from'} group`,
       body: `You have been ${
@@ -184,9 +184,9 @@ export class ChatController {
 
   @Delete('group/:id')
   async deleteGroup(@Param('id') id: string, @Query('by') by: string) {
-    const group = await cloud_firestore.doc(`groups/${id}`).get();
+    const group = await firestore.doc(`groups/${id}`).get();
     if (!group.exists) return 'Group does not exist';
-    const userBy = await cloud_firestore.doc(`users/${by}`).get();
+    const userBy = await firestore.doc(`users/${by}`).get();
     if (
       !userBy.exists ||
       !group
@@ -196,7 +196,7 @@ export class ChatController {
     )
       return 'User by is invalid';
     await group.ref.delete();
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: group.data()['users'],
       title: 'Deletion of group',
       body: `The group ${group.data()['name']} has been deleted by ${
@@ -212,9 +212,9 @@ export class ChatController {
     @Query('text') text: string,
     @Query('uid') uid: string,
   ) {
-    const group = await cloud_firestore.doc(`groups/${id}`).get();
+    const group = await firestore.doc(`groups/${id}`).get();
     if (!group.exists) return 'Group does not exist';
-    const user = await cloud_firestore.doc(`users/${uid}`).get();
+    const user = await firestore.doc(`users/${uid}`).get();
     if (
       !user.exists ||
       !group
@@ -228,7 +228,7 @@ export class ChatController {
       user: user.ref,
       time: FieldValue.serverTimestamp(),
     });
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: group.data()['users'],
       title: `${user.data()['name']}@${group.data()['name']}`,
       body: text,
@@ -245,18 +245,18 @@ export class ChatController {
 
   @Put('message')
   async newMessage(@Body() msg: Message) {
-    const userFrom = await cloud_firestore.doc(`users/${msg.from}`).get();
+    const userFrom = await firestore.doc(`users/${msg.from}`).get();
     if (!userFrom.exists) return 'User from does not exist';
-    const userTo = await cloud_firestore.doc(`users/${msg.to}`).get();
+    const userTo = await firestore.doc(`users/${msg.to}`).get();
     if (!userTo.exists) return 'User to does not exist';
     const chatDocID = [msg.from, msg.to].sort().join();
-    await cloud_firestore.collection(`121/${chatDocID}/messages`).add({
+    await firestore.collection(`121/${chatDocID}/messages`).add({
       from: userFrom.ref,
       to: userTo.ref,
       time: FieldValue.serverTimestamp(),
       text: msg.text,
     });
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: [userTo.ref],
       title: `New message from ${userFrom.data()['name']}`,
       message: msg.text,

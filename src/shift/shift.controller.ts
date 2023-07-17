@@ -8,10 +8,10 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { cloud_firestore, fcm } from '../firebase/firebase';
+import { firestore, fcm } from '../firebase/firebase';
 import { DocumentReference } from 'firebase-admin/lib/firestore';
-import { firestore } from 'firebase-admin';
-import FieldValue = firestore.FieldValue;
+import admin from 'firebase-admin';
+import FieldValue = admin.firestore.FieldValue;
 
 function isValidDateYYYYMMDD(date: string) {
   const regex = '^\\d{4}-\\d{2}-\\d{2}$';
@@ -26,19 +26,19 @@ function isValidDateYYYYMMDD(date: string) {
 export class ShiftController {
   @Delete('delete/:id')
   async deleteShift(@Param('id') id: string, @Query('admin') admin: string) {
-    const shiftData = await cloud_firestore.doc(`shifts/${id}`).get();
+    const shiftData = await firestore.doc(`shifts/${id}`).get();
     if (!shiftData.exists) return 'Shift does not exist.';
     const employee = await (
       shiftData.data()['employee'] as DocumentReference
     ).get();
     if (!employee.exists) return 'Employee of shift does not exist';
-    const adminData = await cloud_firestore.doc(`users/${admin}`).get();
+    const adminData = await firestore.doc(`users/${admin}`).get();
     if (!adminData.exists) return 'Admin does not exist';
-    const admins = await cloud_firestore
+    const admins = await firestore
       .collection('users')
       .where('isAdmin', '==', true)
       .get();
-    await cloud_firestore.collection('changes').add({
+    await firestore.collection('changes').add({
       type: 'DELETE',
       employee: employee.ref,
       administrator: admins.docs.filter((e) => e.id === admin)[0].ref,
@@ -47,7 +47,7 @@ export class ShiftController {
       timestamp: FieldValue.serverTimestamp(),
     });
     await shiftData.ref.delete();
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: admins.docs.map((e) => e.ref),
       title: 'Shift deletion',
       body: `Shift of employee ${employee.id} (Name: ${
@@ -61,7 +61,7 @@ export class ShiftController {
       } has been deleted by administrator ${adminData.data()['name']}`,
       time: FieldValue.serverTimestamp(),
     });
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: [employee.ref],
       title: 'Shift deletion',
       body: `Your shift in the ${shiftData.data()['time']} at ${shiftData
@@ -111,31 +111,31 @@ export class ShiftController {
     @Query('admin') admin: string,
     @Body() shiftDetails: ShiftDetails,
   ) {
-    const employee = await cloud_firestore
+    const employee = await firestore
       .doc(`users/${shiftDetails.employee}`)
       .get();
     if (!employee.exists) return 'Employee does not exist';
-    const adminData = await cloud_firestore.doc(`users/${admin}`).get();
+    const adminData = await firestore.doc(`users/${admin}`).get();
     if (!adminData.exists) return 'Admin does not exist';
     if (!isValidDateYYYYMMDD(shiftDetails.date)) return 'Invalid date format';
-    await cloud_firestore.collection('shifts').add({
-      employee: cloud_firestore.doc(`users/${shiftDetails.employee}`),
+    await firestore.collection('shifts').add({
+      employee: firestore.doc(`users/${shiftDetails.employee}`),
       time: shiftDetails.time,
       date: shiftDetails.date,
     });
-    await cloud_firestore.collection('changes').add({
+    await firestore.collection('changes').add({
       type: 'PUT',
       shiftTime: shiftDetails.time,
       shiftDate: shiftDetails.date,
-      administrator: cloud_firestore.doc(`users/${admin}`),
-      employee: cloud_firestore.doc(`users/${shiftDetails.employee}`),
+      administrator: firestore.doc(`users/${admin}`),
+      employee: firestore.doc(`users/${shiftDetails.employee}`),
       timestamp: FieldValue.serverTimestamp(),
     });
-    const admins = await cloud_firestore
+    const admins = await firestore
       .collection('users')
       .where('isAdmin', '==', true)
       .get();
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: admins.docs.map((e) => e.ref),
       title: 'Shift addition',
       body: `Employee ${employee.id} (Name: ${
@@ -150,7 +150,7 @@ export class ShiftController {
       }`,
       time: FieldValue.serverTimestamp(),
     });
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: [employee.ref],
       title: 'Shift addition',
       body: `You've been added to ${
@@ -198,9 +198,9 @@ export class ShiftController {
     @Query('admin') admin: string,
     @Body() shiftDetails: ShiftDetails,
   ) {
-    const oldShift = await cloud_firestore.doc(`shifts/${id}`).get();
+    const oldShift = await firestore.doc(`shifts/${id}`).get();
     if (!oldShift.exists) return 'Shift does not exist';
-    const employee = await cloud_firestore
+    const employee = await firestore
       .doc(`users/${shiftDetails.employee}`)
       .get();
     if (
@@ -208,29 +208,29 @@ export class ShiftController {
       employee.ref.path !== oldShift.data()['employee'].path
     )
       return 'Employee is invalid';
-    const adminData = await cloud_firestore.doc(`users/${admin}`).get();
+    const adminData = await firestore.doc(`users/${admin}`).get();
     if (!adminData.exists) return 'Admin does not exist';
     if (!isValidDateYYYYMMDD(shiftDetails.date)) return 'Invalid date format';
-    await cloud_firestore.doc(`shifts/${id}`).set({
-      employee: cloud_firestore.doc(`users/${shiftDetails.employee}`),
+    await firestore.doc(`shifts/${id}`).set({
+      employee: firestore.doc(`users/${shiftDetails.employee}`),
       time: shiftDetails.time,
       date: shiftDetails.date,
     });
-    await cloud_firestore.collection(`changes`).add({
+    await firestore.collection(`changes`).add({
       type: 'PATCH',
       shiftTime: shiftDetails.time,
       shiftDate: shiftDetails.date,
       oldTime: oldShift.data()['time'],
       oldDate: oldShift.data()['date'],
-      administrator: cloud_firestore.doc(`users/${admin}`),
-      employee: cloud_firestore.doc(`users/${shiftDetails.employee}`),
+      administrator: firestore.doc(`users/${admin}`),
+      employee: firestore.doc(`users/${shiftDetails.employee}`),
       timestamp: FieldValue.serverTimestamp(),
     });
-    const admins = await cloud_firestore
+    const admins = await firestore
       .collection('users')
       .where('isAdmin', '==', true)
       .get();
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: admins.docs.map((e) => e.ref),
       title: 'Shift rescheduling',
       body: `Employee ${employee.id} (Name: ${
@@ -248,7 +248,7 @@ export class ShiftController {
       }`,
       time: FieldValue.serverTimestamp(),
     });
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: [employee.ref],
       title: 'Shift rescheduling',
       body: `Your ${oldShift.data()['time']} shift on ${oldShift
@@ -306,20 +306,20 @@ export class ShiftController {
     @Param('id') id: string,
     @Body() shiftDetails: ShiftDetails,
   ) {
-    const shift = await cloud_firestore.doc(`shifts/${id}`).get();
+    const shift = await firestore.doc(`shifts/${id}`).get();
     if (!shift.exists) return 'Shift does not exist';
     if (!isValidDateYYYYMMDD(shiftDetails.date))
       return 'Shift date format is not valid';
-    const employee = await cloud_firestore
+    const employee = await firestore
       .doc(`users/${shiftDetails.employee}`)
       .get();
     if (!employee.exists || employee.ref.path !== shift.data()['employee'].path)
       return 'Employee is invalid';
-    const admins = await cloud_firestore
+    const admins = await firestore
       .collection('users')
       .where('isAdmin', '==', true)
       .get();
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: admins.docs.map((e) => e.ref),
       title: 'Shift reschedule request',
       body: `Employee ${employee.id} (Name: ${
@@ -357,17 +357,17 @@ export class ShiftController {
 
   @Post('request/add')
   async requestNewShift(@Body() shiftDetails: ShiftDetails) {
-    const employee = await cloud_firestore
+    const employee = await firestore
       .doc(`users/${shiftDetails.employee}`)
       .get();
     if (!employee.exists) return 'Employee is invalid';
     if (!isValidDateYYYYMMDD(shiftDetails.date))
       return 'Date format is invalid';
-    const admins = await cloud_firestore
+    const admins = await firestore
       .collection('users')
       .where('isAdmin', '==', true)
       .get();
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: admins.docs.map((e) => e.ref),
       title: 'Shift addition request',
       body: `Employee ${employee.id} (Name: ${
@@ -392,19 +392,19 @@ export class ShiftController {
 
   @Post('request/delete/:id')
   async requestDeleteShift(@Param('id') id: string, @Query('by') by: string) {
-    const shift = await cloud_firestore.doc(`shifts/${id}`).get();
+    const shift = await firestore.doc(`shifts/${id}`).get();
     if (!shift.exists) return 'Shift does not exist';
-    const employeeBy = await cloud_firestore.doc(`users/${by}`).get();
+    const employeeBy = await firestore.doc(`users/${by}`).get();
     if (
       !employeeBy.exists ||
       employeeBy.ref.path !== shift.data()['employee'].path
     )
       return 'Employee is invalid';
-    const admins = await cloud_firestore
+    const admins = await firestore
       .collection('users')
       .where('isAdmin', '==', true)
       .get();
-    await cloud_firestore.collection('notifications').add({
+    await firestore.collection('notifications').add({
       users: admins.docs.map((e) => e.ref),
       title: 'Shift deletion request',
       body: `Employee ${employeeBy.id} (Name: ${

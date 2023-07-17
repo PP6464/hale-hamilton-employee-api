@@ -15,4 +15,5 @@ const app = admin.initializeApp({
 });
 
 export const fcm = admin.messaging(app);
-export const cloud_firestore = admin.firestore(app);
+export const firestore = admin.firestore(app);
+export const auth = admin.auth(app);
