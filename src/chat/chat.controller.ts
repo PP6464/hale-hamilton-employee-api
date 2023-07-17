@@ -260,6 +260,7 @@ export class ChatController {
       users: [userTo.ref],
       title: `New message from ${userFrom.data()['name']}`,
       message: msg.text,
+      time: FieldValue.serverTimestamp(),
     });
     await fcm.sendEachForMulticast({
       tokens: userTo.data()['tokens'],
