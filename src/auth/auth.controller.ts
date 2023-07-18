@@ -10,10 +10,6 @@ export class AuthController {
     @Query('by') by: string,
   ) {
     const adminBy = await firestore.doc(`users/${by}`).get();
-    console.log(details);
-    console.log(details['department']);
-    console.log(details.department);
-    console.log(adminBy.data()['department']);
     if (
       !adminBy.exists ||
       adminBy.data()?.['department'] !== details.department
