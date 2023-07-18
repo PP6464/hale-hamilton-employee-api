@@ -10,11 +10,17 @@ export class AuthController {
     @Query('by') by: string,
   ) {
     const adminBy = await firestore.doc(`users/${by}`).get();
+    console.log(details.department);
+    console.log(adminBy.data()['department']);
     if (
       !adminBy.exists ||
       adminBy.data()?.['department'] !== details.department
     )
       return 'Invalid administrator';
+    const userAlreadyExistsCheck = await firestore.collection('users').where('email', '==', details.email).get();
+    if (userAlreadyExistsCheck.docs.length > 0) {
+      return 'Employee already exists';
+    }
     const user = await auth.createUser({
       displayName: details.name,
       photoURL:
