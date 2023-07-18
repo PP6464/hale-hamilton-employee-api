@@ -76,7 +76,7 @@ export class AuthController {
     }
     const admins = await firestore.collection('users').where('isAdmin', '==', true).get();
     await firestore.collection('notifications').add({
-      users: [admins.docs.map((e) => e.ref)],
+      users: admins.docs.map((e) => e.ref),
       title: 'Employee account deletion',
       body: `Employee ${uid} (Name: ${user.data()['name']}, Email: ${user.data()['email']}) has had their account deleted by administrator ${adminBy.data()['name']}`,
       time: FieldValue.serverTimestamp(),
