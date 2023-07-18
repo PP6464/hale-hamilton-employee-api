@@ -28,7 +28,6 @@ export class AuthController {
     });
     await firestore.doc(`users/${user.uid}`).set({
       name: details.name,
-      userName: details.name,
       email: details.email,
       isAdmin: false,
       department: details.department,
