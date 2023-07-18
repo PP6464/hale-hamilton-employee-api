@@ -43,13 +43,18 @@ export class ChatController {
       body: `You have been added to a new group called ${name} (Description: ${desc})`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: membersData.flatMap((e) => e.data()['tokens']),
-      notification: {
-        title: 'Addition into new group',
-        body: `You have been added to a new group called ${name} (Description: ${desc})`,
-      },
-    });
+    try {
+        await fcm.sendEachForMulticast({
+        tokens: membersData.flatMap((e) => e.data()['tokens']),
+        notification: {
+          title: 'Addition into new group',
+          body: `You have been added to a new group called ${name} (Description: ${desc})`,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
+    return 'Group addition has been completed';
   }
 
   @Patch('group/:id/edit')
@@ -79,15 +84,17 @@ export class ChatController {
         }`,
         time: FieldValue.serverTimestamp(),
       });
-      await fcm.sendEachForMulticast({
-        tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
-        notification: {
-          title: 'Group modification',
-          body: `Group ${group.data()['name']} has been renamed to ${
-            changes.name
-          }`,
-        },
-      });
+      try {
+        await fcm.sendEachForMulticast({
+          tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
+          notification: {
+            title: 'Group modification',
+            body: `Group ${group.data()['name']} has been renamed to ${
+              changes.name
+            }`,
+          },
+        });
+      } catch {}
     }
     if (changes.desc !== group.data()['desc']) {
       await firestore.collection('notifications').add({
@@ -98,15 +105,17 @@ export class ChatController {
         } has had its description changed to ${changes.desc}`,
         time: FieldValue.serverTimestamp(),
       });
-      await fcm.sendEachForMulticast({
-        tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
-        notification: {
-          title: 'Group modification',
-          body: `Group ${
-            group.data()['name']
-          } has had its description changed to ${changes.desc}`,
-        },
-      });
+      try {
+        await fcm.sendEachForMulticast({
+          tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
+          notification: {
+            title: 'Group modification',
+            body: `Group ${
+              group.data()['name']
+            } has had its description changed to ${changes.desc}`,
+          },
+        });
+      } catch {}
     }
   }
 
@@ -166,20 +175,25 @@ export class ChatController {
       } group ${group.data()['name']}`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
-      notification: {
-        title: `${type === 'add' ? 'Addition' : 'Removal'} of user from group`,
-        body:
-          type === 'add'
-            ? `Welcome ${userChanged.data()['name']} to the group ${
-                group.data()['name']
-              }`
-            : `${userChanged.data()['name']} was removed from the group ${
-                group.data()['name']
-              }`,
-      },
-    });
+    try {
+      await fcm.sendEachForMulticast({
+        tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
+        notification: {
+          title: `${type === 'add' ? 'Addition' : 'Removal'} of user from group`,
+          body:
+            type === 'add'
+              ? `Welcome ${userChanged.data()['name']} to the group ${
+                  group.data()['name']
+                }`
+              : `${userChanged.data()['name']} was removed from the group ${
+                  group.data()['name']
+                }`,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
+    return 'User was removed from group';
   }
 
   @Delete('group/:id')
@@ -234,13 +248,18 @@ export class ChatController {
       body: text,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
-      notification: {
-        title: `${user.data()['name']}@${group.data()['name']}`,
-        body: text,
-      },
-    });
+    try {
+      await fcm.sendEachForMulticast({
+        tokens: group.data()['users'].flatMap((e) => e.data()['tokens']),
+        notification: {
+          title: `${user.data()['name']}@${group.data()['name']}`,
+          body: text,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
+    return 'Message sent';
   }
 
   @Put('message')
@@ -262,13 +281,18 @@ export class ChatController {
       message: msg.text,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: userTo.data()['tokens'],
-      notification: {
-        title: `New message from ${userFrom.data()['name']}`,
-        body: msg.text,
-      },
-    });
+    try {  
+      await fcm.sendEachForMulticast({
+        tokens: userTo.data()['tokens'],
+        notification: {
+          title: `New message from ${userFrom.data()['name']}`,
+          body: msg.text,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
+    return 'Message sent';
   }
 }
 

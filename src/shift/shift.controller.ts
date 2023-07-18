@@ -73,7 +73,8 @@ export class ShiftController {
         )} has been deleted by an administrator. Enjoy one less shift of work! 👍`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
+    try {
+      await fcm.sendEachForMulticast({
       tokens: admins.docs.flatMap((e) => e.data()['tokens']),
       notification: {
         title: 'Shift deletion',
@@ -89,20 +90,23 @@ export class ShiftController {
           admins.docs.filter((e) => e.id === admin)[0].data()['name']
         }`,
       },
-    });
-    await fcm.sendEachForMulticast({
-      tokens: employee.data()['tokens'],
-      notification: {
-        title: 'Shift deletion',
-        body: `Your shift in the ${shiftData.data()['time']} at ${shiftData
-          .data()
-          ['date'].split('-')
-          .reverse()
-          .join(
-            '/',
-          )} has been deleted by an administrator. Enjoy one less shift of work! 👍`,
-      },
-    });
+      });
+      await fcm.sendEachForMulticast({
+        tokens: employee.data()['tokens'],
+        notification: {
+          title: 'Shift deletion',
+          body: `Your shift in the ${shiftData.data()['time']} at ${shiftData
+            .data()
+            ['date'].split('-')
+            .reverse()
+            .join(
+              '/',
+            )} has been deleted by an administrator. Enjoy one less shift of work! 👍`,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
     return 'Shift deleted';
   }
 
@@ -161,34 +165,38 @@ export class ShiftController {
         .join('/')}.`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
-      notification: {
-        title: 'Shift addition',
-        body: `Employee ${employee.id} (Name: ${
-          employee.data()['name']
-        }, Email: ${employee.data()['email']}) has had ${
-          shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
-        } shift added at ${shiftDetails.date
-          .split('-')
-          .reverse()
-          .join('/')} by administrator ${
-          admins.docs.filter((e) => e.id === admin)[0].data()['name']
-        }`,
-      },
-    });
-    await fcm.sendEachForMulticast({
-      tokens: employee.data()['tokens'],
-      notification: {
-        title: 'Shift addition',
-        body: `You've been added to ${
-          shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
-        } shift by an administrator on ${shiftDetails.date
-          .split('-')
-          .reverse()
-          .join('/')}.`,
-      },
-    });
+    try {
+      await fcm.sendEachForMulticast({
+        tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
+        notification: {
+          title: 'Shift addition',
+          body: `Employee ${employee.id} (Name: ${
+            employee.data()['name']
+          }, Email: ${employee.data()['email']}) has had ${
+            shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
+          } shift added at ${shiftDetails.date
+            .split('-')
+            .reverse()
+            .join('/')} by administrator ${
+            admins.docs.filter((e) => e.id === admin)[0].data()['name']
+          }`,
+        },
+      });
+      await fcm.sendEachForMulticast({
+        tokens: employee.data()['tokens'],
+        notification: {
+          title: 'Shift addition',
+          body: `You've been added to ${
+            shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
+          } shift by an administrator on ${shiftDetails.date
+            .split('-')
+            .reverse()
+            .join('/')}.`,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
     return 'Shift added';
   }
 
@@ -263,41 +271,45 @@ export class ShiftController {
         .join('/')} by an administrator.`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
-      notification: {
-        title: 'Shift rescheduling',
-        body: `Employee ${employee.id} (Name: ${
-          employee.data()['name']
-        }, Email: ${employee.data()['email']}) has had a ${
-          oldShift.data()['time']
-        } shift at ${oldShift
-          .data()
-          ['date'].split('-')
-          .reverse()
-          .join('/')} rescheduled to ${
-          shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
-        } shift by administrator ${
-          admins.docs.filter((e) => e.id === admin)[0].data()['name']
-        }`,
-      },
-    });
-    await fcm.sendEachForMulticast({
-      tokens: employee.data()['tokens'],
-      notification: {
-        title: 'Shift rescheduling',
-        body: `Your ${oldShift.data()['time']} shift on ${oldShift
-          .data()
-          ['date'].split('-')
-          .reverse()
-          .join('/')} has been rescheduled to ${
-          shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
-        } shift on ${shiftDetails.date
-          .split('-')
-          .reverse()
-          .join('/')} by an administrator.`,
-      },
-    });
+    try {
+      await fcm.sendEachForMulticast({
+        tokens: admins.docs.flatMap((e) => e.data()['tokens'] as string[]),
+        notification: {
+          title: 'Shift rescheduling',
+          body: `Employee ${employee.id} (Name: ${
+            employee.data()['name']
+          }, Email: ${employee.data()['email']}) has had a ${
+            oldShift.data()['time']
+          } shift at ${oldShift
+            .data()
+            ['date'].split('-')
+            .reverse()
+            .join('/')} rescheduled to ${
+            shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
+          } shift by administrator ${
+            admins.docs.filter((e) => e.id === admin)[0].data()['name']
+          }`,
+        },
+      });
+      await fcm.sendEachForMulticast({
+        tokens: employee.data()['tokens'],
+        notification: {
+          title: 'Shift rescheduling',
+          body: `Your ${oldShift.data()['time']} shift on ${oldShift
+            .data()
+            ['date'].split('-')
+            .reverse()
+            .join('/')} has been rescheduled to ${
+            shiftDetails.time === 'morning' ? 'a morning' : 'an evening'
+          } shift on ${shiftDetails.date
+            .split('-')
+            .reverse()
+            .join('/')} by an administrator.`,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
     return 'Shift rescheduled';
   }
 
@@ -335,23 +347,27 @@ export class ShiftController {
       } on ${shiftDetails.date.split('-').reverse().join('/')}`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: admins.docs.flatMap((e) => e.data()['tokens']),
-      notification: {
-        title: 'Shift reschedule request',
-        body: `Employee ${employee.id} (Name: ${
-          employee.data()['name']
-        }, Email: ${employee.data()['email']}) has requested to have their ${
-          shift.data()['time']
-        } shift on ${shift
-          .data()
-          ['date'].split('-')
-          .reverse()
-          .join('/')} rescheduled to be in the ${
-          shiftDetails.time
-        } on ${shiftDetails.date.split('-').reverse().join('/')}`,
-      },
-    });
+    try {
+      await fcm.sendEachForMulticast({
+        tokens: admins.docs.flatMap((e) => e.data()['tokens']),
+        notification: {
+          title: 'Shift reschedule request',
+          body: `Employee ${employee.id} (Name: ${
+            employee.data()['name']
+          }, Email: ${employee.data()['email']}) has requested to have their ${
+            shift.data()['time']
+          } shift on ${shift
+            .data()
+            ['date'].split('-')
+            .reverse()
+            .join('/')} rescheduled to be in the ${
+            shiftDetails.time
+          } on ${shiftDetails.date.split('-').reverse().join('/')}`,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
     return 'Shift request sent';
   }
 
@@ -377,17 +393,22 @@ export class ShiftController {
       } shift on ${shiftDetails.date.split('-').reverse().join('/')}`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: admins.docs.flatMap((e) => e.data()['tokens']),
-      notification: {
-        title: 'Shift addition request',
-        body: `Employee ${employee.id} (Name: ${
-          employee.data()['name']
-        }, Email: ${employee.data()['email']}) has requested a new ${
-          shiftDetails.time
-        } shift on ${shiftDetails.date.split('-').reverse().join('/')}`,
-      },
-    });
+    try {
+        await fcm.sendEachForMulticast({
+        tokens: admins.docs.flatMap((e) => e.data()['tokens']),
+        notification: {
+          title: 'Shift addition request',
+          body: `Employee ${employee.id} (Name: ${
+            employee.data()['name']
+          }, Email: ${employee.data()['email']}) has requested a new ${
+            shiftDetails.time
+          } shift on ${shiftDetails.date.split('-').reverse().join('/')}`,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
+    return 'Shift addition request sent';
   }
 
   @Post('request/delete/:id')
@@ -414,19 +435,24 @@ export class ShiftController {
       } shift on ${shift.data()['date'].split('-').reverse().join('/')}`,
       time: FieldValue.serverTimestamp(),
     });
-    await fcm.sendEachForMulticast({
-      tokens: admins.docs.flatMap((e) => e.data()['tokens']),
-      notification: {
-        title: 'Shift deletion request',
-        body: `Employee ${employeeBy.id} (Name: ${
-          employeeBy.data()['name']
-        }, Email: ${
-          employeeBy.data()['email']
-        }) has requested to delete their ${
-          shift.data()['time']
-        } shift on ${shift.data()['date'].split('-').reverse().join('/')}`,
-      },
-    });
+    try {
+      await fcm.sendEachForMulticast({
+        tokens: admins.docs.flatMap((e) => e.data()['tokens']),
+        notification: {
+          title: 'Shift deletion request',
+          body: `Employee ${employeeBy.id} (Name: ${
+            employeeBy.data()['name']
+          }, Email: ${
+            employeeBy.data()['email']
+          }) has requested to delete their ${
+            shift.data()['time']
+          } shift on ${shift.data()['date'].split('-').reverse().join('/')}`,
+        },
+      });
+    } catch {
+      return 'Notification sending failed but update completed';
+    }
+    return 'Shift deletion request sent';
   }
 }
 
