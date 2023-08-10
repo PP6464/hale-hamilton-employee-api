@@ -1,4 +1,12 @@
-import { Body, Controller, Query, Put, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Query,
+  Put,
+  Patch,
+  Param,
+  Delete,
+} from '@nestjs/common';
 import { firestore, auth, fcm } from '../firebase/firebase';
 import { FieldValue } from 'firebase-admin/firestore';
 
@@ -15,7 +23,10 @@ export class AuthController {
       adminBy.data()?.['department'] !== details.department
     )
       return 'Invalid administrator';
-    const userAlreadyExistsCheck = await firestore.collection('users').where('email', '==', details.email).get();
+    const userAlreadyExistsCheck = await firestore
+      .collection('users')
+      .where('email', '==', details.email)
+      .get();
     if (userAlreadyExistsCheck.docs.length > 0) {
       return 'Employee already exists';
     }
@@ -35,10 +46,7 @@ export class AuthController {
   }
 
   @Patch('employee/:uid/change')
-  async resetPassword(
-    @Param('uid') uid: string,
-    @Query('pwd') pwd: string,
-  ) {
+  async resetPassword(@Param('uid') uid: string, @Query('pwd') pwd: string) {
     const user = await firestore.doc(`users/${uid}`).get();
     if (!user.exists || user.data()['isAdmin']) return 'Employee is invalid';
     if (pwd.length < 10) return 'Password must have at least 10 characters';
@@ -57,7 +65,7 @@ export class AuthController {
         notification: {
           title: 'Password reset',
           body: `Your password has been reset to ${pwd} by your department administrator`,
-        }
+        },
       });
     } catch {
       return 'Notification sending failed but update completed';
@@ -65,34 +73,46 @@ export class AuthController {
   }
 
   @Delete('employee/:uid')
-  async deleteEmployee(
-    @Param('uid') uid: string,
-    @Query('by') by: string,
-  ) {
+  async deleteEmployee(@Param('uid') uid: string, @Query('by') by: string) {
     const user = await firestore.doc(`users/${uid}`).get();
     const adminBy = await firestore.doc(`users/${by}`).get();
     if (!user.exists || user.data()['isAdmin']) return 'Invalid user';
     if (!adminBy.exists || !adminBy.data()['isAdmin']) return 'Invalid admin';
-    const shifts = await firestore.collection('shifts').where('employee', '==', user.ref).get();
-    for (let shift of shifts.docs) {
+    const shifts = await firestore
+      .collection('shifts')
+      .where('employee', '==', user.ref)
+      .get();
+    for (const shift of shifts.docs) {
       await shift.ref.delete();
     }
-    const admins = await firestore.collection('users').where('isAdmin', '==', true).get();
+    const admins = await firestore
+      .collection('users')
+      .where('isAdmin', '==', true)
+      .get();
     await firestore.collection('notifications').add({
       users: admins.docs.map((e) => e.ref),
       title: 'Employee account deletion',
-      body: `Employee ${uid} (Name: ${user.data()['name']}, Email: ${user.data()['email']}) has had their account deleted by administrator ${adminBy.data()['name']}`,
+      body: `Employee ${uid} (Name: ${user.data()['name']}, Email: ${
+        user.data()['email']
+      }) has had their account deleted by administrator ${
+        adminBy.data()['name']
+      }`,
       time: FieldValue.serverTimestamp(),
     });
-    await auth.deleteUser(uid);
-    await user.ref.delete();
+    await auth.updateUser(uid, {
+      disabled: true,
+    });
     try {
       await fcm.sendEachForMulticast({
         tokens: admins.docs.flatMap((e) => e.data()['tokens']),
         notification: {
           title: 'Employee account deletion',
-          body: `Employee ${uid} (Name: ${user.data()['name']}, Email: ${user.data()['email']}) has had their account deleted by administrator ${adminBy.data()['name']}`,
-        }
+          body: `Employee ${uid} (Name: ${user.data()['name']}, Email: ${
+            user.data()['email']
+          }) has had their account deleted by administrator ${
+            adminBy.data()['name']
+          }`,
+        },
       });
     } catch {
       return 'Notification sending failed but update completed';
