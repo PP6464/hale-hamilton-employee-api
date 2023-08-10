@@ -101,9 +101,15 @@ export class AuthController {
       }`,
       time: FieldValue.serverTimestamp(),
     });
-    await auth.updateUser(uid, {
-      disabled: true,
-    });
+    await auth.deleteUser(uid);
+    const changes = await firestore
+      .collection(`changes`)
+      .where('employee', '==', firestore.doc(`users/${uid}`))
+      .get();
+    for (const change of changes.docs) {
+      await change.ref.delete();
+    }
+    await firestore.doc(`users/${uid}`).delete();
     try {
       await fcm.sendEachForMulticast({
         tokens: admins.docs.flatMap((e) => e.data()['tokens']),
